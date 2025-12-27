@@ -1,3 +1,6 @@
+// Using randomization on animations (modules) and pylons can cause strange visual effects on some vehicles 
+// (like minigun missing on the GhostHawk, which causes the gunners' arms to glitch, or multiple weapons on the same pylon)
+
 // Randomize vehicle textures
 fnc_forceRandomizeTextures = {
 	params ["_veh"];
