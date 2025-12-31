@@ -208,6 +208,6 @@ while {true} do {
 		};
 	} forEach _activeGroups;
 
-if (_ShowActiveGroups) then {hintSilent format ["Active units : %1", count _activeUnits]};
+if (_ShowActiveGroups) then {hintSilent format ["Active units: %1", count _activeUnits]};
 	sleep _Interval;
 };

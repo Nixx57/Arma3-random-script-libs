@@ -1,5 +1,5 @@
 /*
-    Called by : this addAction ["Recruter IA", SBX_fnc_recruitAI, ["B_Soldier_F", "B_medic_F"]];
+    Example usage: this addAction ["Recruit AI", SBX_fnc_recruitAI, ["B_Soldier_F", "B_medic_F"]];
 */
 
 params ["_target", "_caller", "_id", "_arguments"];

@@ -33,4 +33,4 @@ _allSectors = [];
 	};
 } forEach _locations;
 
-systemChat format ["%1 secteurs générés et activés.", count _allSectors];
+systemChat format ["%1 sectors generated and activated.", count _allSectors];
