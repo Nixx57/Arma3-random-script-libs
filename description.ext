@@ -36,9 +36,3 @@ class CfgFunctions
         };
     };
 };
-
-/*
-TODO:
-Lock vehicles support
-increase max units/group
-*/
