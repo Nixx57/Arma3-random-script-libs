@@ -32,7 +32,6 @@ Key scripts
 Notes & TODOs
 --------------
 - These scripts are POC: they may not follow strict SQF conventions and may need refactoring for production use.
-- Current TODOs in the mission: lock vehicle support, adjust max units per group.
 
 Contributing
 ------------
