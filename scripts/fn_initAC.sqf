@@ -5,16 +5,21 @@
 _SpawnAreaAroundPlayers = 2000; // Radius around players to spawn groups
 _WaypointsArea = 500; // Radius around players to place waypoints
 //_GroupsLimit = 12;
-_UnitsLimit = 144;
+UnitsLimit = ["SBX_UnitsLimit", -1] call BIS_fnc_getParamValue;
 
-_SpawnBLUFOR = true;
-_SpawnOPFOR = true;
-_SpawnINDEPENDENT = true;
+SpawnEAST = (["SBX_SpawnEAST", 1] call BIS_fnc_getParamValue) == 1;
+SpawnWEST = (["SBX_SpawnWEST", 1] call BIS_fnc_getParamValue) == 1;
+SpawnGUER = (["SBX_SpawnGUER", 1] call BIS_fnc_getParamValue) == 1;
+SpawnCIV = (["SBX_SpawnCIV", 0] call BIS_fnc_getParamValue) == 1;
 
-_Interval = 30;
+Interval = ["SBX_Interval", 30] call BIS_fnc_getParamValue;
 
-_ShowActiveGroups = true;
-_MaxUnitsPerGroup = 12;
+ShowActiveUnits = (["SBX_ShowActiveUnits", 1] call BIS_fnc_getParamValue) == 1;
+MaxUnitsPerGroup = ["SBX_MaxUnitsPerGroup", 12] call BIS_fnc_getParamValue;
+
+private _behaviourList = ["RANDOM", "SAFE", "AWARE", "COMBAT", "STEALTH"];
+private _index = ["SBX_UnitsBehaviours", 1] call BIS_fnc_getParamValue;
+UnitsBehaviours = _behaviourList select _index;
 
 // //// //// ////////////////////////////////////////////////////////////////////////////////////////////
 //                                                 INIT                                              // 
@@ -46,25 +51,30 @@ private _fnc_generateData = {
 };
 
 // Generate data libraries per side (once at init)
-private _dataE = if (_SpawnOPFOR) then {[0] call _fnc_generateData} else {createHashMap};
-private _dataW = if (_SpawnBLUFOR) then {[1] call _fnc_generateData} else {createHashMap};
-private _dataI = if (_SpawnINDEPENDENT) then {[2] call _fnc_generateData} else {createHashMap};
-private _dataC = if (_SpawnCIVILIAN) then {[3] call _fnc_generateData} else {createHashMap};
+DataEAST = if (SpawnEAST) then {[0] call _fnc_generateData} else {createHashMap};
+DataWEST = if (SpawnWEST) then {[1] call _fnc_generateData} else {createHashMap};
+DataGUER = if (SpawnGUER) then {[2] call _fnc_generateData} else {createHashMap};
+DataCIV = if (SpawnCIV) then {[3] call _fnc_generateData} else {createHashMap};
 
 //// //////////////////////////////////////////////////////////////////////////////////////////////////
 //                                           spawn FUNCTIONS                                        // 
 //// //////////////////////////////////////////////////////////////////////////////////////////////////
 
-_Behaviour = ["SAFE", "AWARE", "COMBAT", "STEALTH"];
-_Formations = ["COLUMN", "STAG COLUMN", "WEDGE", "ECH LEFT", "ECH RIGHT", "VEE", "LINE", "FILE", "DIAMOND"];
-_Ranks = ["PRIVATE", "CORPORAL", "SERGEANT", "LIEUTENANT", "CAPTAIN", "MAJOR", "COLONEL"];
+private _behaviours = ["SAFE", "AWARE", "COMBAT", "STEALTH"];
+private _formations = ["COLUMN", "STAG COLUMN", "WEDGE", "ECH LEFT", "ECH RIGHT", "VEE", "LINE", "FILE", "DIAMOND"];
+private _ranks = ["PRIVATE", "CORPORAL", "SERGEANT", "LIEUTENANT", "CAPTAIN", "MAJOR", "COLONEL"];
 
-private _atSpawnedFnc = {
+private _fnc_atSpawned = {
 	_this setVariable ["isSpawnedGrp", true];
-    _this setBehaviourStrong (/*selectRandom _Behaviour*/ "SAFE");
+		private _mode = switch (UnitsBehaviours) do {
+		case "RANDOM": { selectRandom _behaviours };
+		default { UnitsBehaviours };
+	};
+
+	_this setBehaviourStrong _mode;
     _this setSpeedMode "NORMAL";
     _this setCombatMode "RED";
-    _this setFormation (selectRandom _Formations);
+    _this setFormation (selectRandom _formations);
     _this deleteGroupWhenEmpty true;
 
     private _highestRankIndex = -1;
@@ -80,11 +90,10 @@ private _atSpawnedFnc = {
 			_x setSkill [_skillName, _randomValue];
     	} forEach _allSkills;
 
-        
-        private _rank = selectRandom _Ranks;
+        private _rank = selectRandom _ranks;
         _x setRank _rank;
 
-        private _currentIndex = _Ranks find _rank;
+        private _currentIndex = _ranks find _rank;
         if (_currentIndex > _highestRankIndex) then {
             _highestRankIndex = _currentIndex;
             _potentialLeader = _x;
@@ -96,7 +105,7 @@ private _atSpawnedFnc = {
     };
 };
 
-private _spawnElement = {
+private _fnc_spawnObject = {
 	params ["_group", "_class", "_pos"];
 	private _spawnedObj = objNull;
 	_pos set [2, 0];
@@ -127,23 +136,34 @@ private _spawnElement = {
 	_spawnedObj
 };
 
+private _fnc_markerExists = {
+    params ["_markerName"];
+    (markerColor _markerName != "")
+};
+
 // //// //// ////////////////////////////////////////////////////////////////////////////////////////////
 //                                         MAIN LOOP                                                  // 
 //// //// //// //////////////////////////////////////////////////////////////////////////////////////////
 
 _Sides = [];
-if (_SpawnOPFOR) then {_Sides pushBack opfor};
-if (_SpawnBLUFOR) then {_Sides pushBack blufor};
-if (_SpawnINDEPENDENT) then {_Sides pushBack independent};
-if (_SpawnCIVILIAN) then {_Sides pushBack civilian};
+{
+    // _x = side
+    private _sideName = str _x; // "WEST", "EAST", etc.
+    private _spawnVar = missionNamespace getVariable [format ["Spawn%1", _sideName], false];
+
+    if (_spawnVar) then {
+        _Sides pushBack _x;
+    };
+} forEach [west, east, resistance, civilian];
 
 while {true} do {
     private _activeGroups = allGroups select {(_x getVariable ["isSpawnedGrp", false]) && ({alive _x} count units _x > 0)};
 	private _activeUnits = allUnits select {(_x getVariable ["isSpawnedUnit", false]) && (alive _x)};
 	
-	if ((count _activeUnits < _UnitsLimit) && (diag_fps > 35)) then {
+	if (((count _activeUnits < UnitsLimit) || UnitsLimit == -1) && (diag_fps > 35)) then {
 		private _side = selectRandom _Sides;
-		private _lib = switch (_side) do {case blufor: {_dataW}; case opfor: {_dataE}; case independent {_dataI}; case civilian {_dataC}};
+		private _sideName = str _side;
+		private _lib = missionNamespace getVariable (format ["Data%1", _sideName]);
 
 		if (count _lib > 0) then {
 			private _faction = selectRandom (keys _lib);
@@ -152,7 +172,7 @@ while {true} do {
 
 			if (!isNil "_player") then {
 				private _newGroup = createGroup _side;
-				private _targetSize = floor(random _MaxUnitsPerGroup) + 1;
+				private _targetSize = floor(random MaxUnitsPerGroup) + 1;
 
 				_requiredDistance = _SpawnAreaAroundPlayers;
 
@@ -175,9 +195,9 @@ while {true} do {
 						[[[_spawnPos, 100]]] call BIS_fnc_randomPos
 					};
 
-					[_newGroup, _class, _currentPos] call _spawnElement;
+					[_newGroup, _class, _currentPos] call _fnc_spawnObject;
 				};
-				_newGroup call _atSpawnedFnc;
+				_newGroup call _fnc_atSpawned;
 			};
 		};
 	};
@@ -228,6 +248,6 @@ while {true} do {
 		} forEach units _grp;
 	} forEach _activeGroups;
 
-	if (_ShowActiveGroups) then {hintSilent format ["Active units: %1", count _activeUnits]};
-	sleep _Interval;
+	if (ShowActiveUnits) then {hintSilent format ["Active units: %1", count _activeUnits]};
+	sleep Interval;
 };

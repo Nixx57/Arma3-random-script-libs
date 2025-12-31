@@ -14,7 +14,9 @@ private _unitsToMap = [
 	"B_Captain_Dwarden_F", // Dwarden
 	"B_Pilot_F",
 	"B_Helipilot_F",
+	"B_helicrew_F",
 	"B_Fighter_Pilot_F",
+	"B_crew_F",
 	"B_Patrol_HeavyGunner_F",
 	"B_Patrol_Soldier_TL_F",
 	"B_Patrol_Soldier_AR_F",

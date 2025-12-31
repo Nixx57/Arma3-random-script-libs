@@ -10,9 +10,84 @@ respawnOnStart = 1;
 
 class Header
 {
-	gameType = "Coop";
+	gameType = "Sandbox";
 	minPlayers =  1;
 	maxPlayers = 12;
+};
+
+class Params
+{
+    class SBX_UnitsLimit
+    {
+        title = "Unit limit (limited by the server's FPS, minimum FPS: 35)";
+        values[] = {-1 ,8, 16, 32, 64, 100, 128, 144, 200};
+        texts[] = {"Unlimited", "8", "16", "32", "64", "100", "128", "144", "200"};
+        default = -1;
+    };
+
+    class SBX_SpawnEAST
+    {
+        title = "OPFOR";
+        values[] = {0, 1};
+        texts[] = {"Disabled", "Enabled"};
+        default = 1;
+    };
+
+    class SBX_SpawnWEST
+    {
+        title = "BLUFOR";
+        values[] = {0, 1};
+        texts[] = {"Disabled", "Enabled"};
+        default = 1;
+    };
+
+    class SBX_SpawnRESISTANCE
+    {
+        title = "INDEPENDENT";
+        values[] = {0, 1};
+        texts[] = {"Disabled", "Enabled"};
+        default = 1;
+    };
+
+    class SBX_SpawnCIV
+    {
+        title = "CIVILIAN";
+        values[] = {0, 1};
+        texts[] = {"Disabled", "Enabled"};
+        default = 0;
+    };
+
+    class SBX_Interval
+    {
+        title = "Spawn interval (seconds)";
+        values[] = {10, 30, 60, 120, 180, 300};
+        texts[] = {"10s", "30s", "1 min", "2 min", "3 min", "5 min"};
+        default = 30;
+    };
+
+    class SBX_ShowActiveUnits
+    {
+        title = "Show active units in AC control";
+        values[] = {0, 1};
+        texts[] = {"Disabled", "Enabled"};
+        default = 1;
+    };
+
+    class SBX_MaxUnitsPerGroup
+    {
+        title = "Max units per group";
+        values[] = {4, 8, 12, 16, 20, 32, 64};
+        texts[] = {"4", "8", "12", "16", "20", "32", "64"};
+        default = 12;
+    };
+
+    class SBX_UnitsBehaviours
+    {
+        title = "Units behaviours";
+        values[] = {0, 1, 2, 3, 4};
+        texts[] = {"RANDOM", "SAFE", "AWARE", "COMBAT", "STEALTH"};
+        default = 1;
+    };
 };
 
 class CfgFunctions

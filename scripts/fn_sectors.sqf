@@ -17,7 +17,7 @@ _allSectors = [];
 		_sector = _grp createUnit ["ModuleSector_F", _pos, [], 0, "NONE"];
 
 		_sector setVariable ["Name", _displayName, true];
-		_sector setVariable ["Sides", [west, east, resistance], true];
+		_sector setVariable ["Sides", [west, east, resistance, civilian], true];
 		_sector setVariable ["OwnerLimit", 1, true];
 		_sector setVariable ["objectArea", [_radiusA, _radiusB, _angle, true, 0], true];
 
