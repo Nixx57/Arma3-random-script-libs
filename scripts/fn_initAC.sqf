@@ -60,7 +60,7 @@ _Ranks = ["PRIVATE", "CORPORAL", "SERGEANT", "LIEUTENANT", "CAPTAIN", "MAJOR", "
 
 private _atSpawnedFnc = {
 	_this setVariable ["isSpawnedGrp", true];
-    _this setBehaviourStrong (selectRandom _Behaviour);
+    _this setBehaviourStrong (/*selectRandom _Behaviour*/ "SAFE");
     _this setSpeedMode "NORMAL";
     _this setCombatMode "RED";
     _this setFormation (selectRandom _Formations);
@@ -226,6 +226,6 @@ while {true} do {
 		} forEach units _grp;
 	} forEach _activeGroups;
 
-	if (_ShowActiveGroups) then {hintSilent format ["Active Groups : %1", count _activeGroups]};
+	if (_ShowActiveGroups) then {hintSilent format ["Active units : %1", count _activeUnits]};
 	sleep _Interval;
 };
