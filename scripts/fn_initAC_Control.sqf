@@ -2,13 +2,14 @@
 //                                           CONFIG                                                // 
 // //// //// ////////////////////////////////////////////////////////////////////////////////////////////
 
-// Require 3 markers (blufor_ai, opfor_ai, ind_ai) + modules "ModuleSector_F"
+// Require markers (created at random pos if not exists: blufor_ai, opfor_ai, ind_ai, civilian_ai) + modules "ModuleSector_F"
 //_GroupsLimit = 12;
 _UnitsLimit = 144;
 
 _SpawnBLUFOR = true;
 _SpawnOPFOR = true;
 _SpawnINDEPENDENT = true;
+_SpawnCIVILIAN = false;
 
 _Interval = 30;
 
@@ -45,9 +46,10 @@ private _fnc_generateData = {
 };
 
 // Generate data libraries per side (once at init)
-private _dataW = if (_SpawnBLUFOR) then {[1] call _fnc_generateData} else {createHashMap};
 private _dataE = if (_SpawnOPFOR) then {[0] call _fnc_generateData} else {createHashMap};
+private _dataW = if (_SpawnBLUFOR) then {[1] call _fnc_generateData} else {createHashMap};
 private _dataI = if (_SpawnINDEPENDENT) then {[2] call _fnc_generateData} else {createHashMap};
+private _dataC = if (_SpawnCIVILIAN) then {[3] call _fnc_generateData} else {createHashMap};
 
 //// //////////////////////////////////////////////////////////////////////////////////////////////////
 //                                           spawn FUNCTIONS                                        // 
@@ -125,14 +127,43 @@ private _spawnElement = {
 	_spawnedObj
 };
 
+private_fnc_generateMarker = {
+	params ["_side"];
+	private _markerPos = [] call BIS_fnc_randomPos;
+	private _sideStr = switch (_side) do {
+		case blufor: {"blufor_ai"};
+		case independent: {"ind_ai"};
+		case opfor: {"opfor_ai"};
+		case civilian: {"civ_ai"};
+	};
+	private _markerObj = createMarker [_sideStr, _markerPos];
+	_private _markerColor = switch (_side) do {
+		case blufor: {"ColorBLUFOR"};
+		case independent: {"ColorIndependent"};
+		case opfor: {"ColorOPFOR"};
+		case civilian: {"ColorCIVILIAN"};
+	};
+	_markerObj setMarkerShape "ELLIPSE";
+	_markerObj setMarkerSize [100, 100];
+	_markerObj setMarkerAlpha 1;
+	private _hq = switch (_side) do {
+		case blufor: {BIS_SUPP_HQ_WEST};
+		case independent: {BIS_SUPP_HQ_GUER};
+		case opfor: {BIS_SUPP_HQ_EAST};
+		case civilian: {BIS_SUPP_HQ_CIV};
+	};
+	_hq setPos _markerPos;
+};
+
 // //// //// ////////////////////////////////////////////////////////////////////////////////////////////
 //                                         MAIN LOOP                                                  // 
 //// //// //// //////////////////////////////////////////////////////////////////////////////////////////
 
 _Sides = [];
-if (_SpawnBLUFOR) then {_Sides pushBack west};
-if (_SpawnOPFOR) then {_Sides pushBack east};
+if (_SpawnOPFOR) then {_Sides pushBack opfor};
+if (_SpawnBLUFOR) then {_Sides pushBack blufor};
 if (_SpawnINDEPENDENT) then {_Sides pushBack independent};
+if (_SpawnCIVILIAN) then {_Sides pushBack civilian};
 
 while {true} do {
     private _activeGroups = allGroups select {(_x getVariable ["isSpawnedGrp", false]) && ({alive _x} count units _x > 0)};
@@ -140,8 +171,8 @@ while {true} do {
 
 	if ((count _activeUnits < _UnitsLimit) && (diag_fps > 35)) then {
 		private _side = selectRandom _Sides;
-		private _marker = switch (_side) do {case west: {"blufor_ai"};case east: {"opfor_ai"};default {"ind_ai"}};
-		private _lib = switch (_side) do {case west: {_dataW}; case east: {_dataE}; default {_dataI}};
+		private _marker = switch (_side) do {case blufor: {"blufor_ai"};case opfor: {"opfor_ai"};case independent {"ind_ai"} ;case civilian {"civ_ai"};};
+		private _lib = switch (_side) do {case blufor: {_dataW}; case opfor: {_dataE}; case independent {_dataI}; case civilian {_dataC}};
 
 		if (count _lib > 0) then {
 			private _faction = selectRandom (keys _lib);

@@ -28,7 +28,7 @@ class CfgFunctions
             class sectors {preInit = 1;};
             class respawnVeh {};
             class initAC {};
-            class loadout {};
+            class loadout {preInit = 1;};
             class initAC_Control {};
             class recruitAI {};
             class randomUnitsArray {};

@@ -46,9 +46,10 @@ private _fnc_generateData = {
 };
 
 // Generate data libraries per side (once at init)
-private _dataW = if (_SpawnBLUFOR) then {[1] call _fnc_generateData} else {createHashMap};
 private _dataE = if (_SpawnOPFOR) then {[0] call _fnc_generateData} else {createHashMap};
+private _dataW = if (_SpawnBLUFOR) then {[1] call _fnc_generateData} else {createHashMap};
 private _dataI = if (_SpawnINDEPENDENT) then {[2] call _fnc_generateData} else {createHashMap};
+private _dataC = if (_SpawnCIVILIAN) then {[3] call _fnc_generateData} else {createHashMap};
 
 //// //////////////////////////////////////////////////////////////////////////////////////////////////
 //                                           spawn FUNCTIONS                                        // 
@@ -131,9 +132,10 @@ private _spawnElement = {
 //// //// //// //////////////////////////////////////////////////////////////////////////////////////////
 
 _Sides = [];
-if (_SpawnBLUFOR) then {_Sides pushBack west};
-if (_SpawnOPFOR) then {_Sides pushBack east};
+if (_SpawnOPFOR) then {_Sides pushBack opfor};
+if (_SpawnBLUFOR) then {_Sides pushBack blufor};
 if (_SpawnINDEPENDENT) then {_Sides pushBack independent};
+if (_SpawnCIVILIAN) then {_Sides pushBack civilian};
 
 while {true} do {
     private _activeGroups = allGroups select {(_x getVariable ["isSpawnedGrp", false]) && ({alive _x} count units _x > 0)};
@@ -141,7 +143,7 @@ while {true} do {
 	
 	if ((count _activeUnits < _UnitsLimit) && (diag_fps > 35)) then {
 		private _side = selectRandom _Sides;
-		private _lib = switch (_side) do {case west: {_dataW}; case east: {_dataE}; default {_dataI}};
+		private _lib = switch (_side) do {case blufor: {_dataW}; case opfor: {_dataE}; case independent {_dataI}; case civilian {_dataC}};
 
 		if (count _lib > 0) then {
 			private _faction = selectRandom (keys _lib);
