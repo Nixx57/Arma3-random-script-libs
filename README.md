@@ -4,9 +4,9 @@ This mission contains a collection of small Arma 3 SQF scripts and mission logic
 
 Features
 --------
-- Dynamic spawning of units and vehicles around players (affects BLUFOR/OPFOR/Independent)
-- Vehicle respawn and customization: random textures, animation sources, and pylon loadouts
-- Sector generation (based on map names) and simple sector ownership behavior
+- Dynamic spawning of units and vehicles around players OR around a marker (affects BLUFOR/OPFOR/Independent)
+- Vehicle respawn and customization: random textures, animation sources, and pylon loadouts. Completely randomized from list directly readed in configFile
+- Vanilla Sector generation (based on map names) and simple sector ownership behavior
 - Utilities to collect unit lists by faction and to recruit AI via action
 
 Usage
@@ -16,7 +16,7 @@ Usage
 3. The mission is already configured to start the main systems from `initServer.sqf`:
 
 	[] spawn SBX_fnc_respawnVeh;
-	[] spawn SBX_fnc_initAC_Control;
+	[] spawn SBX_fnc_initAC_Control; // Change between SBX_fnc_initAC_Control/SBX_fnc_initAC (first one use the marker for spawn AI, the other one around a player in a 2km radius)
 	[] call SBX_fnc_loadout;
 
 Key scripts
