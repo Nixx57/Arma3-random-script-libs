@@ -73,6 +73,21 @@ fnc_forceRandomizePylons = {
 	};
 };
 
+fnc_respawnCondition = {
+	params ["_veh", "_originalPos"];
+	private _grp = group _veh;
+	private _isDead = !alive _veh;
+	private _isEmpty = {alive _x} count (crew _veh) == 0;
+
+	private _currentAliveCount = {alive _x} count (units _grp);
+    private _anyCrewDead = (_currentAliveCount < count (units _grp));
+
+	private _isFarFromAnyUnit = {(_x distance2D _veh) < 100} count allUnits == 0;
+	private _isFarFromOriginalPos = (_veh distance2D _originalPos) > 100;
+
+	(_isDead || _anyCrewDead || (_isEmpty && _isFarFromAnyUnit && _isFarFromOriginalPos))
+};
+
 fnc_veh_respawn = {
     params ["_veh", "_pos", "_dir", "_type", "_custom", "_pylons", "_pylonPaths", "_hadCrew", "_hadSupport"];    
         
@@ -85,26 +100,13 @@ fnc_veh_respawn = {
     while { _active } do {
         sleep 10;
 
-        private _isDead = !alive _veh;
-        private _isEmpty = (count (crew _veh select {alive _x})) == 0;
-
-        private _currentAliveCount = count (units _grp select {alive _x});
-        private _anyCrewDead = (_currentAliveCount < _initialCount);
-        
-        private _isFarFromAnyUnit = (count (allUnits select { (_x distance2D _veh < 100) })) == 0;
-        private _isFarFromOriginalPos = (_veh distance2D _pos) > 100;
-
         // --- VEHICLES ---
-        if (!(_veh isKindOf "Man") && (_isDead || _anyCrewDead || (_isEmpty && _isFarFromAnyUnit && _isFarFromOriginalPos))) then {
+        if (!(_veh isKindOf "Man") && ([_veh, _pos] call fnc_respawnCondition)) then {
             sleep 60;
             
-            // Double check
-			private _isDead = !alive _veh;
-			private _isEmpty = (count (crew _veh select {alive _x})) == 0;
-			private _anyCrewDead = (_currentAliveCount < _initialCount);
-			private _isFarFromAnyUnit = (count (allUnits select { (_x distance2D _veh < 100) }) == 0);
-			private _isFarFromOriginalPos = (_veh distance2D _pos) > 100;
-			if (!(_isDead || _anyCrewDead || (_isEmpty && _isFarFromAnyUnit && _isFarFromOriginalPos))) then { continue; };
+            // Double check, cancel if condition no longer met
+			if (!([_veh, _pos] call fnc_respawnCondition)) then { continue; };
+
             { deleteVehicle _x } forEach (units _grp);
             deleteVehicle _veh;
             sleep 1;
@@ -116,6 +118,10 @@ fnc_veh_respawn = {
             [_veh, _custom select 0, _custom select 1] call BIS_fnc_initVehicle;
             { _veh setPylonLoadout [_pylonPaths select _forEachIndex, _x, true]; } forEach _pylons;
 
+			// _veh call fnc_forceRandomizeTextures;
+			// _veh call fnc_forceRandomizeAnims;
+			// _veh call fnc_forceRandomizePylons;
+
             if (_hadCrew || unitIsUAV _veh) then {
                 createVehicleCrew _veh;
                 if (!isNull _grp) then { (crew _veh) joinSilent _grp; };
@@ -123,7 +129,7 @@ fnc_veh_respawn = {
         };
 
         // --- MAN ---
-        if ((_veh isKindOf "Man") && _isDead) then {
+        if ((_veh isKindOf "Man") && (!alive _veh)) then {
             sleep 60;
             deleteVehicle _veh;
             

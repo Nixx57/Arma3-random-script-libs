@@ -21,8 +21,7 @@ Usage
 
 Key scripts
 -----------
-- `scripts/fn_initAC.sqf` — dynamic spawning around players (default behavior)
-- `scripts/fn_initAC_Control.sqf` — controlled spawning using markers and sector behavior
+- `scripts/fn_initAC.sqf` — dynamic spawning and roaming around players or using markers and sector behavior
 - `scripts/fn_respawnVeh.sqf` — vehicle respawn and randomization (textures, anims, pylons)
 - `scripts/fn_sectors.sqf` — auto-generate sector modules from map names
 - `scripts/fn_randomUnitsArray.sqf` — build faction unit lists from `CfgVehicles`
