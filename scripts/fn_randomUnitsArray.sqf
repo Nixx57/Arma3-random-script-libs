@@ -15,7 +15,6 @@ if (isNil _kindOf) then {
 	_kindOf = "AllVehicles"; // default to AllVehicles except 'ParachuteBase', 'StaticWeapon', 'Ship'
 	_excludeConditions = " &&
 		!(configName _x isKindOf 'ParachuteBase') &&
-		!(configName _x isKindOf 'StaticWeapon') &&
 		!(configName _x isKindOf 'Ship')";
 };
 

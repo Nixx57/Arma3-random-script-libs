@@ -52,12 +52,6 @@ private _fnc_generateData = {
 	_data
 };
 
-// Generate data libraries per side (once at init)
-DataEAST = if (SpawnEAST) then {[0] call _fnc_generateData} else {createHashMap};
-DataWEST = if (SpawnWEST) then {[1] call _fnc_generateData} else {createHashMap};
-DataGUER = if (SpawnGUER) then {[2] call _fnc_generateData} else {createHashMap};
-DataCIV = if (SpawnCIV) then {[3] call _fnc_generateData} else {createHashMap};
-
 //// //////////////////////////////////////////////////////////////////////////////////////////////////
 //                                           spawn FUNCTIONS                                        // 
 //// //////////////////////////////////////////////////////////////////////////////////////////////////
@@ -117,6 +111,26 @@ private _fnc_atSpawned = {
 		) then {
 			_veh setVariable ["isArtilleryVehicle", true];
 		};
+
+		if (_veh != _x && (_veh isKindOf "Static")) then {
+			private _crew = crew _veh;
+			private _staticGrp = createGroup (side _x);
+			{
+				[_x] joinSilent _staticGrp;
+				_x setVariable ["isSpawnedUnit", true];
+			} forEach _crew;
+
+			_staticGrp setVariable ["isSpawnedGrp", true];
+			_staticGrp setBehaviourStrong _mode;
+			_staticGrp setSpeedMode "NORMAL";
+			_staticGrp setCombatMode "RED";
+			_staticGrp deleteGroupWhenEmpty true;
+
+			if (_potentialLeader in _crew) then {
+				_potentialLeader = objNull;
+				_highestRankIndex = -1;
+			};
+		};
 	} forEach units _this;	
 
 	if (!isNull _potentialLeader) then {
@@ -162,7 +176,17 @@ private _fnc_tryArtilleryFire = {
                 private _shots = (floor (random _maxAllowed)) + 1;
 
                 _vehArty doArtilleryFire [_fpos, _fmag, _shots];
-				_vehArty sideChat (format ["Firing %1 rounds of %2 at position %3", _shots, _fmag, _fpos]);
+
+				private _displayName = getText (configFile >> "CfgVehicles" >> typeOf _vehArty >> "displayName");
+				private _gridPos = mapGridPosition _fpos;
+				private _magName = getText (configFile >> "CfgMagazines" >> _fmag >> "displayName");
+
+				_vehArty sideChat format ["[%1] - Firing %2 rounds of %3 at Grid %4", 
+					_displayName, 
+					_shots, 
+					_magName, 
+					_gridPos
+				];
             };
         };
     } forEach _artilleryVehicles;
@@ -176,7 +200,6 @@ private _fnc_spawnObject = {
 		private _alt = 400 + (random 1000);
 		_pos set [2, _alt];
 		_spawnedObj = createVehicle [_class, _pos, [], 0, "FLY"];
-		_spawnedObj setDir (random 360);
 		_spawnedObj setVelocityModelSpace [0, 100, 0];
 		createVehicleCrew _spawnedObj;
 		(crew _spawnedObj) joinSilent _group;
@@ -196,6 +219,7 @@ private _fnc_spawnObject = {
 		[_spawnedObj] call fnc_forceRandomizeAnims;
 		[_spawnedObj] call fnc_forceRandomizePylons;
 	};
+	_spawnedObj setDir (random 360);
 	_spawnedObj
 };
 
@@ -222,6 +246,13 @@ private _fnc_generateMarker = {
 // //// //// ////////////////////////////////////////////////////////////////////////////////////////////
 //                                         MAIN LOOP                                                  // 
 //// //// //// //////////////////////////////////////////////////////////////////////////////////////////
+
+// Generate data libraries per side (once at init)
+DataEAST = if (SpawnEAST) then {[0] call _fnc_generateData} else {createHashMap};
+DataWEST = if (SpawnWEST) then {[1] call _fnc_generateData} else {createHashMap};
+DataGUER = if (SpawnGUER) then {[2] call _fnc_generateData} else {createHashMap};
+DataCIV = if (SpawnCIV) then {[3] call _fnc_generateData} else {createHashMap};
+
 
 _Sides = [];
 {
