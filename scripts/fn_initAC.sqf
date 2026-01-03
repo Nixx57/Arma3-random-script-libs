@@ -1,6 +1,7 @@
 // //// //// ////////////////////////////////////////////////////////////////////////////////////////////
 //                                           CONFIG                                                // 
 // //// //// ////////////////////////////////////////////////////////////////////////////////////////////
+sleep 5;
 
 _SpawnAreaAroundPlayers = 2000; // Radius around players to spawn groups
 _WaypointsArea = 500; // Radius around players to place waypoints
@@ -14,7 +15,7 @@ SpawnWEST = (["SBX_SpawnWEST", 1] call BIS_fnc_getParamValue) == 1;
 SpawnGUER = (["SBX_SpawnGUER", 1] call BIS_fnc_getParamValue) == 1;
 SpawnCIV = (["SBX_SpawnCIV", 0] call BIS_fnc_getParamValue) == 1;
 
-Interval = ["SBX_Interval", 30] call BIS_fnc_getParamValue;
+Interval = ["SBX_Interval", 60] call BIS_fnc_getParamValue;
 
 ShowActiveUnits = (["SBX_ShowActiveUnits", 1] call BIS_fnc_getParamValue) == 1;
 MaxUnitsPerGroup = ["SBX_MaxUnitsPerGroup", 12] call BIS_fnc_getParamValue;
@@ -22,35 +23,6 @@ MaxUnitsPerGroup = ["SBX_MaxUnitsPerGroup", 12] call BIS_fnc_getParamValue;
 private _behaviourList = ["RANDOM", "SAFE", "AWARE", "COMBAT", "STEALTH"];
 private _index = ["SBX_UnitsBehaviours", 1] call BIS_fnc_getParamValue;
 UnitsBehaviours = _behaviourList select _index;
-
-// //// //// ////////////////////////////////////////////////////////////////////////////////////////////
-//                                                 INIT                                              // 
-// //// //// ////////////////////////////////////////////////////////////////////////////////////////////
-
-// Scan function to generate vehicle libraries per side and faction
-private _fnc_generateData = {
-	params ["_sideNum"];
-	private _data = createHashMap;
-	private _cfg = configFile >> "CfgVehicles";
-
-	private _filtered = "
-	(getNumber (_x >> 'scope') == 2) &&
-	(getNumber (_x >> 'side') == " + str _sideNum + ") &&
-	(configName _x isKindOf 'AllVehicles') &&
-	!(configName _x isKindOf 'ParachuteBase') &&
-	!(configName _x isKindOf 'StaticWeapon') &&
-	!(configName _x isKindOf 'Ship')
-	" configClasses _cfg;
-
-	{
-		private _faction = getText (_x >> "faction");
-		if !(_faction in _data) then {
-			_data set [_faction, []];
-		};
-		(_data get _faction) pushBack (configName _x);
-	} forEach _filtered;
-	_data
-};
 
 //// //////////////////////////////////////////////////////////////////////////////////////////////////
 //                                           spawn FUNCTIONS                                        // 
@@ -112,13 +84,17 @@ private _fnc_atSpawned = {
 			_veh setVariable ["isArtilleryVehicle", true];
 		};
 
-		if (_veh != _x && (_veh isKindOf "Static")) then {
+		// Handle static weapons
+		if (_veh != _x && (_veh isKindOf "StaticWeapon")) then {
 			private _crew = crew _veh;
 			private _staticGrp = createGroup (side _x);
 			{
 				[_x] joinSilent _staticGrp;
 				_x setVariable ["isSpawnedUnit", true];
 			} forEach _crew;
+
+			// Keep the static vehicle owned by its new group so commands still apply
+			_staticGrp addVehicle _veh;
 
 			_staticGrp setVariable ["isSpawnedGrp", true];
 			_staticGrp setBehaviourStrong _mode;
@@ -143,52 +119,51 @@ private _fnc_tryArtilleryFire = {
 
     {
         private _vehArty = _x;
-        
-        if (unitReady _vehArty) then {
             
-            private _magsInInventory = (magazinesAmmo _vehArty) select { (_x select 1) > 0 };
-            private _magsNames = _magsInInventory apply { _x select 0 };
+		private _magsInInventory = (magazinesAmmo _vehArty) select { (_x select 1) > 0 };
+		private _magsNames = _magsInInventory apply { _x select 0 };
 
-            private _validEntries = [];
+		private _validEntries = [];
 
-            {
-                private _targetPos = getPosATL (leader _x);
-                
-                private _availableMagsAtPos = getArtilleryAmmo [_vehArty] select { 
-                    (_x in _magsNames) && { _targetPos inRangeOfArtillery [[_vehArty], _x] }
-                };
+		{
+			private _targetPos = getPosATL (leader _x);
+			
+			private _availableMagsAtPos = getArtilleryAmmo [_vehArty] select { 
+				(_x in _magsNames) && { _targetPos inRangeOfArtillery [[_vehArty], _x] }
+			};
 
-                if (count _availableMagsAtPos > 0) then {
-                    private _chosenMag = selectRandom _availableMagsAtPos;
-                    
-                    private _idx = _magsInInventory findIf { (_x select 0) == _chosenMag };
-                    private _stock = (_magsInInventory select _idx) select 1;
+			if (count _availableMagsAtPos > 0) then {
+				private _chosenMag = selectRandom _availableMagsAtPos;
+				
+				private _idx = _magsInInventory findIf { (_x select 0) == _chosenMag };
+				private _stock = (_magsInInventory select _idx) select 1;
 
-                    _validEntries pushBack [_targetPos, _chosenMag, _stock];
-                };
-            } forEach _targetGroups;
+				_validEntries pushBack [_targetPos, _chosenMag, _stock];
+			};
+		} forEach _targetGroups;
 
-            if (count _validEntries > 0) then {
-                private _selection = selectRandom _validEntries;
-                _selection params ["_fpos", "_fmag", "_fstock"];
+		if (count _validEntries > 0) then {
+			systemChat format ["[%1] - Firing artillery!", getText (configFile >> "CfgVehicles" >> typeOf _vehArty >> "displayName")];
+			private _selection = selectRandom _validEntries;
+			_selection params ["_fpos", "_fmag", "_fstock"];
 
-				private _maxAllowed = (_fstock min 9);
-                private _shots = (floor (random _maxAllowed)) + 1;
+			private _maxAllowed = (_fstock min 9);
+			private _shots = (floor (random _maxAllowed)) + 1;
 
-                _vehArty doArtilleryFire [_fpos, _fmag, _shots];
+			_vehArty commandArtilleryFire [_fpos, _fmag, _shots];
 
-				private _displayName = getText (configFile >> "CfgVehicles" >> typeOf _vehArty >> "displayName");
-				private _gridPos = mapGridPosition _fpos;
-				private _magName = getText (configFile >> "CfgMagazines" >> _fmag >> "displayName");
+			private _displayName = getText (configFile >> "CfgVehicles" >> typeOf _vehArty >> "displayName");
+			private _gridPos = mapGridPosition _fpos;
+			private _magName = getText (configFile >> "CfgMagazines" >> _fmag >> "displayName");
 
-				_vehArty sideChat format ["[%1] - Firing %2 rounds of %3 at Grid %4", 
-					_displayName, 
-					_shots, 
-					_magName, 
-					_gridPos
-				];
-            };
-        };
+			_vehArty sideChat format ["[%1] - Firing %2 rounds of %3 at Grid %4", 
+				_displayName, 
+				_shots, 
+				_magName, 
+				_gridPos
+			];
+		};
+
     } forEach _artilleryVehicles;
 };
 
@@ -248,11 +223,10 @@ private _fnc_generateMarker = {
 //// //// //// //////////////////////////////////////////////////////////////////////////////////////////
 
 // Generate data libraries per side (once at init)
-DataEAST = if (SpawnEAST) then {[0] call _fnc_generateData} else {createHashMap};
-DataWEST = if (SpawnWEST) then {[1] call _fnc_generateData} else {createHashMap};
-DataGUER = if (SpawnGUER) then {[2] call _fnc_generateData} else {createHashMap};
-DataCIV = if (SpawnCIV) then {[3] call _fnc_generateData} else {createHashMap};
-
+DataEAST = if (SpawnEAST) then {[0] call SBX_fnc_randomUnitsArray} else {createHashMap};
+DataWEST = if (SpawnWEST) then {[1] call SBX_fnc_randomUnitsArray} else {createHashMap};
+DataGUER = if (SpawnGUER) then {[2] call SBX_fnc_randomUnitsArray} else {createHashMap};
+DataCIV = if (SpawnCIV) then {[3] call SBX_fnc_randomUnitsArray} else {createHashMap};
 
 _Sides = [];
 {
@@ -386,11 +360,19 @@ while {true} do {
 			};
 		} forEach units _grp;
 
+		// Prevent multiple passes on the same piece when crewed by several units
+		_artilleryVehicles = _artilleryVehicles arrayIntersect _artilleryVehicles;
+
 		if (count _artilleryVehicles > 0) then {
-			private _spottedGroups = ([[]] call BIS_Marta_getVisibleGroups) select {([side _grp, side _x] call BIS_fnc_sideIsEnemy)};
+			private _spottedGroups = allGroups select {
+				([side _grp, side _x] call BIS_fnc_sideIsEnemy) && 
+				{(side _grp) knowsAbout (leader _x) > 0}
+			};
+
 			private _eligibleTargets = _spottedGroups select {
 				!(vehicle (leader _x) isKindOf "Air")
 			};
+
 			if (count _eligibleTargets > 0) then {
 				[_artilleryVehicles, _eligibleTargets] call _fnc_tryArtilleryFire;
 			};

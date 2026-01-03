@@ -10,12 +10,13 @@ params ["_sideNum", "_kindOf"];
 private _data = createHashMap;
 private _cfg = configFile >> "CfgVehicles";
 
-_excludeConditions = "";
-if (isNil _kindOf) then {
-	_kindOf = "AllVehicles"; // default to AllVehicles except 'ParachuteBase', 'StaticWeapon', 'Ship'
-	_excludeConditions = " &&
-		!(configName _x isKindOf 'ParachuteBase') &&
-		!(configName _x isKindOf 'Ship')";
+private _excludeConditions = "";
+if (isNil "_kindOf") then {
+    // Only apply exclusions when caller omits _kindOf
+    _kindOf = "AllVehicles";
+    _excludeConditions = " &&
+        !(configName _x isKindOf 'ParachuteBase') &&
+        !(configName _x isKindOf 'Ship')";
 };
 
 private _filterString = format [

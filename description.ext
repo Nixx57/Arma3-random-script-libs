@@ -78,7 +78,7 @@ class Params
         title = "Spawn interval (seconds)";
         values[] = {10, 30, 60, 120, 180, 300};
         texts[] = {"10s", "30s", "1 min", "2 min", "3 min", "5 min"};
-        default = 30;
+        default = 60;
     };
 
     class SBX_ShowActiveUnits
