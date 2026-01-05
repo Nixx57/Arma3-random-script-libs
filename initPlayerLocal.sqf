@@ -1,3 +1,5 @@
+["InitializePlayer", [player]] call BIS_fnc_dynamicGroups;
+
 [[], 3] call bis_fnc_music;
 
 {

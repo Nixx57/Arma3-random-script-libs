@@ -2,6 +2,7 @@
 // onLoadName		= "Point Insertion";
 // onLoadMission	= "A group of NATO soldiers is tasked with sabotaging a coastal defense.";
 // loadScreen		= "images\loadScreen.paa";
+
 allowFunctionsRecompile = 1;
 respawn = 3;
 respawnDelay = 10;
@@ -25,19 +26,11 @@ class Params
         default = 144;
     };
 
-    class SBX_SpawnOnMarkers
-    {
-        title = "Spawn on markers/around players";
-        values[] = {0, 1};
-        texts[] = {"2000m Around players", "On markers named 'X_ai' (X = EAST, WEST, RESISTANCE, CIV)"};
-        default = 1;
-    };
-
     class SBX_CaptureSectors
     {
-        title = "AI Objectives";
+        title = "Mode";
         values[] = {0, 1};
-        texts[] = {"Roaming around players", "Capture nearest sectors"};
+        texts[] = {"Roaming around players", "Capture sectors"};
         default = 1;
     };
 
@@ -123,6 +116,7 @@ class CfgFunctions
             class recruitAI {};
             class randomUnitsArray {};
             class has_Support {};
+            class enhancedGarage {};
         };
     };
 };

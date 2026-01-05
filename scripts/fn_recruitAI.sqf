@@ -23,7 +23,7 @@ if (count _unitsToSpawn == 0) then {
     };
 };
 
-private _spawnPos = _target modelToWorld [0, 10, 0];
+private _spawnPos = _target modelToWorld [0, -10, 0];
 _spawnPos set [2, 0];
 
 private _group = group _caller;

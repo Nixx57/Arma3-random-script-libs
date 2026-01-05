@@ -7,7 +7,6 @@ _SpawnAreaAroundPlayers = 2000; // Radius around players to spawn groups
 _WaypointsArea = 500; // Radius around players to place waypoints
 
 UnitsLimit = ["SBX_UnitsLimit", -1] call BIS_fnc_getParamValue;
-SpawnOnMakers = (["SBX_SpawnOnMarkers", 1] call BIS_fnc_getParamValue) == 1;
 CaptureSectors = (["SBX_CaptureSectors", 1] call BIS_fnc_getParamValue) == 1;
 
 SpawnEAST = (["SBX_SpawnEAST", 1] call BIS_fnc_getParamValue) == 1;
@@ -198,26 +197,6 @@ private _fnc_spawnObject = {
 	_spawnedObj
 };
 
-private _fnc_markerExists = {
-    params ["_markerName"];
-    (markerColor _markerName != "")
-};
-
-private _fnc_generateMarker = {
-	params ["_side"];
-	private _markerPos = [] call BIS_fnc_randomPos;
-	private _markerName = format ["%1_ai", (str _side)];
-	private _markerObj = createMarker [_markerName, _markerPos];
-	private _markerColor = format ["Color%1", (str _side)];
-
-	_markerObj setMarkerColor _markerColor;
-	_markerObj setMarkerShape "ELLIPSE";
-	_markerObj setMarkerSize [100, 100];
-	_markerObj setMarkerAlpha 1;
-	private _hq = missionNamespace getVariable (format ["BIS_SUPP_HQ_%1", (str _side)]);
-	_hq setPos (getMarkerPos _markerName);
-};
-
 // //// //// ////////////////////////////////////////////////////////////////////////////////////////////
 //                                         MAIN LOOP                                                  // 
 //// //// //// //////////////////////////////////////////////////////////////////////////////////////////
@@ -231,19 +210,11 @@ DataCIV = if (SpawnCIV) then {[3] call SBX_fnc_randomUnitsArray} else {createHas
 _Sides = [];
 {
     // _x = side
-    private _sideName = str _x; // "WEST", "EAST", etc.
+    private _sideName = str _x; // "WEST", "EAST", "GUER", "CIV"
     private _spawnSide = missionNamespace getVariable [format ["Spawn%1", _sideName], false];
 
     if (_spawnSide) then {
         _Sides pushBack _x;
-        
-		if (SpawnOnMakers) then {
-			private _markerName = format ["%1_ai", _sideName];
-			
-			if !([_markerName] call _fnc_markerExists) then {
-				[_x] call _fnc_generateMarker;
-			};
-		}
     };
 } forEach [west, east, resistance, civilian];
 
@@ -263,12 +234,16 @@ while {true} do {
 			private _targetSize = floor(random MaxUnitsPerGroup) + 1;
 			private _spawnPos = [0,0,0];
 
-			if (SpawnOnMakers) then {
-				private _marker = format ["%1_ai", _sideName];
-				private _mPos = getMarkerPos _marker;
-				private _mSize = getMarkerSize _marker; 
+			if (CaptureSectors) then {
+				private _ownedSectors = entities "ModuleSector_F" select {([_side, (_x getVariable ["owner", sideUnknown])] call BIS_fnc_sideIsFriendly)};
 
-				_spawnPos = _mPos;
+				if (count _ownedSectors > 0) then {
+					private _sector = selectRandom _ownedSectors;
+					_spawnPos = [[getPos _sector, (_sector getVariable "objectArea" select 0) max (_sector getVariable "objectArea" select 1)]] call BIS_fnc_randomPos;
+				}
+				else {
+					_spawnPos = [] call BIS_fnc_randomPos;
+				};
 			}
 			else {
 				private _player = selectRandom allPlayers;
