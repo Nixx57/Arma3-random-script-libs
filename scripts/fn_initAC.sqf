@@ -142,7 +142,6 @@ private _fnc_tryArtilleryFire = {
 		} forEach _targetGroups;
 
 		if (count _validEntries > 0) then {
-			systemChat format ["[%1] - Firing artillery!", getText (configFile >> "CfgVehicles" >> typeOf _vehArty >> "displayName")];
 			private _selection = selectRandom _validEntries;
 			_selection params ["_fpos", "_fmag", "_fstock"];
 
@@ -239,7 +238,7 @@ while {true} do {
 
 				if (count _ownedSectors > 0) then {
 					private _sector = selectRandom _ownedSectors;
-					_spawnPos = [[getPos _sector, (_sector getVariable "objectArea" select 0) max (_sector getVariable "objectArea" select 1)]] call BIS_fnc_randomPos;
+					_spawnPos = [[[getPos _sector, ((_sector getVariable "objectArea" select 0) max (_sector getVariable "objectArea" select 1))]]] call BIS_fnc_randomPos;
 				}
 				else {
 					_spawnPos = [] call BIS_fnc_randomPos;

@@ -38,7 +38,7 @@ _veh = createVehicle [ "Land_HelipadEmpty_F", getMarkerPos ( _this select 0 ), [
 uiNamespace setVariable [ "garage_pad", _veh ];
 missionNamespace setVariable [ "BIS_fnc_arsenal_fullGarage", [ true, 0, false, [ false ] ] call bis_fnc_param ];
 
-with missionNamespace do { BIS_fnc_garage_center = [ true, 1, _veh, [ objNull ] ] call bis_fnc_param; };
+with missionNamespace do { missionNamespace setVariable ["BIS_fnc_garage_center", [ true, 1, _veh, [ objNull ] ] call bis_fnc_param]; };
 
 with uiNamespace do {  
 	_displayMission = [] call ( uiNamespace getVariable "bis_fnc_displayMission" );
@@ -52,8 +52,8 @@ with uiNamespace do {
         params ["_display"];
         
         // 1. Container
-        private _groupW = 0.8;
-        private _groupH = 0.5;
+        private _groupW = 1;
+        private _groupH = 1;
         private _ctrlGroup = _display ctrlCreate ["RscControlsGroupNoScrollbars", -1];
         _ctrlGroup ctrlSetPosition [safeZoneX + safeZoneW - _groupW - 0.05, safeZoneY + (safeZoneH / 2) - (_groupH / 2), _groupW, _groupH];
         _ctrlGroup ctrlCommit 0;
@@ -61,21 +61,11 @@ with uiNamespace do {
         // 2. Background of the group (to make it visible)
         private _groupBG = _display ctrlCreate ["RscText", -1, _ctrlGroup];
         _groupBG ctrlSetPosition [0, 0, _groupW, _groupH];
-        _groupBG ctrlSetBackgroundColor [0.25, 0.25, 0.25, 1]; // Semi-transparent black
+        _groupBG ctrlSetBackgroundColor [0.25, 0.25, 0.25, 1];
         _groupBG ctrlCommit 0;
 
-        // 1. Définition des dimensions de l'image
-        private _picW = _groupH; 
-        private _picH = _groupH;
-
-        // 2. Calcul du centrage
-        // X = (0.8 - 0.4) / 2 = 0.2
-        // Y = (0.5 - 0.4) / 2 = 0.05
-        private _centerX = (_groupW - _picW) / 2;
-        private _centerY = (_groupH - _picH) / 2;
-
         private _ctrlPic = _display ctrlCreate ["RscPictureKeepAspect", -1, _ctrlGroup];
-        _ctrlPic ctrlSetPosition [_centerX, _centerY, _picW, _picH];
+        _ctrlPic ctrlSetPosition [0, 0, _groupW, _groupH];
         _ctrlPic ctrlSetTextColor [0, 0, 0, 1];
         _ctrlPic ctrlCommit 0;
 
@@ -99,6 +89,7 @@ with uiNamespace do {
                     
                     // --- GENERATION OF COMBOBOXES ---
                     private _pylonPaths = "true" configClasses (configFile >> "CfgVehicles" >> _lastClass >> "Components" >> "TransportPylonsComponent" >> "Pylons");
+                    private _pylonComboBoxes = [];
                     {
                         private _pylonName = configName _x;
                         private _compatibleMags = _currentVeh getCompatiblePylonMagazines _pylonName;
@@ -109,23 +100,42 @@ with uiNamespace do {
                         _activeControls pushBack _combo;
                         
                         _combo ctrlSetPosition [
-                            _pos select 0, 
-                            _pos select 1, 
-                            0.25, 
-                            0.035
+                            (_pos select 0), 
+                            (_pos select 1)
                         ];
                         _combo ctrlCommit 0;
 
+                        _combo lbAdd "Empty"; // First empty entry
+                        _combo lbSetData [0, ""]; // Data for empty entry
                         {
                             private _displayName = getText (configFile >> "CfgMagazines" >> _x >> "displayName");
                             private _picture = getText (configFile >> "CfgMagazines" >> _x >> "picture");
+                            private _description = getText (configFile >> "CfgMagazines" >> _x >> "descriptionShort");
 
                             private _idx = _combo lbAdd _displayName;
                             
                             _combo lbSetData [_idx, _x];
                             
                             _combo lbSetPicture [_idx, _picture];
+                            if (_description != "") then {
+                                _combo lbSetTooltip [_idx, _description];
+                            };
                         } forEach _compatibleMags;
+
+                        // Set current selection
+                        private _pylonIdx = _forEachIndex + 1;
+                        private _currentMag = (getPylonMagazines _currentVeh) select (_pylonIdx - 1);
+
+                        private _currentMagIndex = -1;
+                        for "_i" from 0 to ((lbSize _combo) - 1) do {
+                            if (_combo lbData _i == _currentMag) exitWith {
+                                _currentMagIndex = _i;
+                            };
+                        };
+
+                        if (_currentMagIndex != -1) then {
+                            _combo lbSetCurSel _currentMagIndex;
+                        };
 
                         // Change event
                         _combo ctrlAddEventHandler ["LBSelChanged", {
@@ -135,11 +145,88 @@ with uiNamespace do {
                             _veh = missionNamespace getVariable ["BIS_fnc_arsenal_center", objNull];
                             if (_mag != "" && !isNull _veh) then {
                                 _veh setPylonLoadout [_pylonIdx, _mag, true];
+                            }
+                            else {
+                                // Si vide, on applique "Empty"
+                                _veh setPylonLoadout [_pylonIdx, "", false];
                             };
                         }];
                         _combo setVariable ["pylonIndex", _forEachIndex + 1];
+                        _pylonComboBoxes pushBack _combo;
 
                     } forEach _pylonPaths;
+                    _display setVariable ["SBX_activePylonCombos", _pylonComboBoxes];
+                    // Generate preset comboBox
+                    private _presetsConfig = _cfgPylons >> "Presets";
+                    if (isClass _presetsConfig) then {
+                        private _presetCombo = _display ctrlCreate ["RscCombo", -1, _ctrlGroup];
+                        _activeControls pushBack _presetCombo;
+                        
+                        // Position at top center of the group
+                        _presetCombo ctrlSetPosition [0.01, 0.01];
+                        _presetCombo ctrlCommit 0;
+                        
+                        // Add "Custom" option as default
+                        private _customIdx = _presetCombo lbAdd "Custom";
+                        _presetCombo lbSetData [_customIdx, ""];
+                        _presetCombo lbSetCurSel _customIdx;
+                        
+                        // Add all available presets
+                        private _presetClasses = "true" configClasses _presetsConfig;
+                        {
+                            private _presetName = configName _x;
+                            private _displayName = getText (_x >> "displayName");
+                            if (_displayName == "") then { _displayName = _presetName; };
+                            
+                            private _idx = _presetCombo lbAdd _displayName;
+                            _presetCombo lbSetData [_idx, _presetName];
+                        } forEach _presetClasses;
+                        
+                        // Event handler for preset selection
+                        _presetCombo ctrlAddEventHandler ["LBSelChanged", {
+                            params ["_ctrl", "_index"];
+                            private _display = ctrlParent _ctrl; // On récupère le display
+                            private _pylonComboBoxes = _display getVariable ["SBX_activePylonCombos", []]; // On récupère l'array !
+                            private _presetName = _ctrl lbData _index;
+                            private _veh = missionNamespace getVariable ["BIS_fnc_arsenal_center", objNull];
+                            
+                            if (_presetName != "" && !isNull _veh) then {
+                                // Apply the preset
+                                private _vehClass = typeOf _veh;
+                                private _presetCfg = configFile >> "CfgVehicles" >> _vehClass >> "Components" >> "TransportPylonsComponent" >> "Presets" >> _presetName;
+                                private _attachment = getArray (_presetCfg >> "attachment");
+                                {
+                                    private _combo = _x;
+                                    if ( count _attachment > 0) then {
+                                        private _magToApply = _attachment select _forEachIndex;
+
+                                        if (_magToApply == "") exitWith {
+                                            // Si vide, on applique "Empty"
+                                            _magToApply = "";
+                                            _veh setPylonLoadout [_forEachIndex + 1, "", false];
+                                        };
+                                        // 1. Appliquer au véhicule
+                                        _veh setPylonLoadout [_forEachIndex + 1, _magToApply, true];
+                                        
+                                        // 2. Mettre à jour visuellement la Combo correspondante
+                                        for "_i" from 0 to ((lbSize _combo) - 1) do {
+                                            if (_combo lbData _i == _magToApply) exitWith {
+                                                _combo lbSetCurSel _i;
+                                            };
+                                        };
+                                    }
+                                    else {
+                                        // No attachment for this pylon in the preset, set to empty
+                                        _veh setPylonLoadout [_forEachIndex + 1, "", false];
+                                        
+                                        // Update ComboBox selection to "Empty"
+                                        _combo lbSetCurSel 0;
+                                    };
+                                    
+                                } forEach _pylonComboBoxes;
+                            };
+                        }];
+                    };
                 } else {
                     _ctrlPic ctrlSetText "";
                 };
@@ -156,7 +243,6 @@ with uiNamespace do {
 	deleteVehicle _pad;
 
     _veh = missionNamespace getVariable "BIS_fnc_garage_center";
-    systemChat format ["Exiting Garage, Spawning Vehicle: %1", typeOf _veh];
     _vehType = typeOf _veh;
     _custom = [_veh] call BIS_fnc_getVehicleCustomization;
     _pylons = getPylonMagazines _veh;
