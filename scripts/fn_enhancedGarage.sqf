@@ -55,17 +55,28 @@ with uiNamespace do {
         private _groupW = 0.8;
         private _groupH = 0.5;
         private _ctrlGroup = _display ctrlCreate ["RscControlsGroupNoScrollbars", -1];
-        _ctrlGroup ctrlSetPosition [safeZoneX + safeZoneW - _groupW - 0.05, safeZoneY + safeZoneH - _groupH - 0.1, _groupW, _groupH];
+        _ctrlGroup ctrlSetPosition [safeZoneX + safeZoneW - _groupW - 0.05, safeZoneY + (safeZoneH / 2) - (_groupH / 2), _groupW, _groupH];
         _ctrlGroup ctrlCommit 0;
 
         // 2. Background of the group (to make it visible)
         private _groupBG = _display ctrlCreate ["RscText", -1, _ctrlGroup];
         _groupBG ctrlSetPosition [0, 0, _groupW, _groupH];
-        _groupBG ctrlSetBackgroundColor [0, 0, 0, 0.6]; // Semi-transparent black
+        _groupBG ctrlSetBackgroundColor [0.25, 0.25, 0.25, 1]; // Semi-transparent black
         _groupBG ctrlCommit 0;
 
+        // 1. Définition des dimensions de l'image
+        private _picW = _groupH; 
+        private _picH = _groupH;
+
+        // 2. Calcul du centrage
+        // X = (0.8 - 0.4) / 2 = 0.2
+        // Y = (0.5 - 0.4) / 2 = 0.05
+        private _centerX = (_groupW - _picW) / 2;
+        private _centerY = (_groupH - _picH) / 2;
+
         private _ctrlPic = _display ctrlCreate ["RscPictureKeepAspect", -1, _ctrlGroup];
-        _ctrlPic ctrlSetPosition [0.05, 0.05, 0.4, 0.4];
+        _ctrlPic ctrlSetPosition [_centerX, _centerY, _picW, _picH];
+        _ctrlPic ctrlSetTextColor [0, 0, 0, 1];
         _ctrlPic ctrlCommit 0;
 
         private _lastClass = "";
@@ -100,7 +111,7 @@ with uiNamespace do {
                         _combo ctrlSetPosition [
                             _pos select 0, 
                             _pos select 1, 
-                            0.3, 
+                            0.25, 
                             0.035
                         ];
                         _combo ctrlCommit 0;
